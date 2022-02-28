@@ -11,4 +11,6 @@ app.use(express.json());
 app.use(cors());
 app.use("/employees", EmployeesRoutes);
 
+app.get("/",(req, res)=>{res.send("Welcome to my site")});
+
 app.listen(port);
