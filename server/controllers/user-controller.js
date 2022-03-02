@@ -4,28 +4,32 @@ const jwt = require("jsonwebtoken");
 
 module.exports = {
     register: async (request, response) => {
-        const { email, password } = request.body;
-        if (await users.exists({ email: email })) return response.status(400).json({ message: "Email exists" });
-        bcrypt.hash(password, 10, async (err, hashPassword) => {
+        if (await users.exists({ email: request.body.email })) return response.status(400).json({ message: "Email exists" });
+        bcrypt.hash(request.body.password, 10, async (err, hashPassword) => {
             if (err) return response.status(500).json({ message: "password error" });
-            password = hashPassword;
+            request.body.password = hashPassword;
             await users.create(request.body)
                 .then(() => response.status(200).json({ message: "user added successfully" }))
-                .catch(err => response.status(500).json(err))
+                .catch(err => response.status(500).json(err.message))
         })
     },
     login: async (request, response) => {
-        const { email, password } = request.body;
-        if (!await users.exists({ email: email })) return response.status(400).json({ message: "No user found" });
-        const user = users.findOne(user => user.email === email);
-        bcrypt.compare(password, user.password, (err, isMatch) => {
-            if (err) return response.status(500).json(err);
-            if (!isMatch) return response.status(400).json({ message: "password incorrect" });
-
-            jwt.sign(user, process.env.SECRET_KEY, { expiresIn: "30m" }, (err, token) => {
-                if (err) return response.status(500).json(err);
-                response.status(200).json({ message: "login successful", token });
-            })
-        })
+        try {
+            const user = await users.findOne({ email: request.body.email });
+            if (user) {
+                bcrypt.compare(request.body.password, user.password, (err, isMatch) => {
+                    if (err) return response.status(500).json(err.message);
+                    if (!isMatch) return response.status(400).json({ message: "password incorrect" });
+                    const token = jwt.sign({ user }, process.env.SECRET_KEY, { expiresIn: "1h" });
+                    return response.status(200).json({ message: "login successful", token });
+                });
+            }
+            else {
+                return response.status(400).json({ message: "No user found" });
+            };
+        }
+        catch (err) {
+            return response.status(500).json({ message: err.message });
+        };
     }
 };
