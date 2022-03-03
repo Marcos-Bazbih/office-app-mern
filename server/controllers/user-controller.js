@@ -21,13 +21,21 @@ module.exports = {
             bcrypt.compare(request.body.password, user.password, (err, isMatch) => {
                 if (err) return response.status(500).json(err.message);
                 if (!isMatch) return response.status(400).json({ message: "password incorrect" });
-                const token = jwt.sign({ user }, process.env.SECRET_KEY, { expiresIn: "1h" });
+                const token = jwt.sign({ user }, process.env.SECRET_KEY, { expiresIn: "30m" });
                 return response.status(200).json({ message: "login successful", token });
             });
         }
         catch (err) {
             return response.status(500).json({ message: err.message });
         };
+    },
+    logout: (request, response) => {
+        try {
+            request.logout();
+            response.redirect("/");
+        } catch (err) {
+            response.status(500).json({message: err.message}) ;
+        }
     },
     getUsers: async (request, response) => {
         try {

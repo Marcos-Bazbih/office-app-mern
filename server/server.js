@@ -6,13 +6,18 @@ const cors = require("cors");
 const EmployeesRoutes = require("./routes/employees-routes");
 const UsersRoutes = require("./routes/users-router");
 const app = express();
-const port = process.env.PORT;
+const port = process.env.PORT || 3000;
+const passport = require("passport");
 
-app.use(express.json());
+require("./config/passport")(passport);
+
+app.use(express.json({ extended: true }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
-app.listen(port);
-
+app.listen(port, () => { console.log(`listening to port ${port}`); });
 app.get("/", (req, res) => { res.json({ message: "Welcome to my site" }) });
-app.use("/employees", EmployeesRoutes);
+
+app.use(passport.initialize());
+app.use("/employees", passport.authenticate('jwt', { session: false }), EmployeesRoutes);
 app.use("/auth", UsersRoutes);
